@@ -10,6 +10,8 @@ import com.example.reggie_take_out.mapper.SetmealDishMapper;
 import com.example.reggie_take_out.service.SetmealDishService;
 import com.example.reggie_take_out.service.SetmealService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +32,8 @@ public class SetmealController {
         return R.success(list);
     }
 
+
+    @CacheEvict(value = "setmealCache",allEntries = true)
     @PostMapping
     public R<String> save(@RequestBody SetmealDto setmealDto){
         setmealService.saveSetmealAndDish(setmealDto);
@@ -42,6 +46,7 @@ public class SetmealController {
         return R.success(setmealDto);
     }
 
+    @CacheEvict(value = "setmealCache",allEntries = true)
     @PostMapping("/status/{state}")
     public R<String> changeStatus(@PathVariable("state")Integer state, @RequestParam("ids") Long id){
         // 获得套餐
@@ -52,6 +57,7 @@ public class SetmealController {
         return R.success("状态修改成功");
     }
 
+    @CacheEvict(value = "setmealCache",allEntries = true)
     @DeleteMapping
     public R<String> delete(@RequestParam("ids")List<Long> ids){
         return setmealService.deleteSetmealDish(ids);
@@ -59,6 +65,7 @@ public class SetmealController {
 
 
     @GetMapping("/list")
+    @Cacheable(value = "setmealCache",key = "#map.get('categoryId') + '_' + #map.get('status')")
     public R<List<Setmeal>> list(@RequestParam Map<String,String> map){
         Long categoryId = Long.valueOf(map.get("categoryId"));
         Integer status = Integer.valueOf(map.get("status"));

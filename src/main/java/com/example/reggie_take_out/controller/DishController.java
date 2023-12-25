@@ -13,6 +13,9 @@ import com.example.reggie_take_out.service.DishFlavorService;
 import com.example.reggie_take_out.service.DishService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -76,6 +79,7 @@ public class DishController {
 //       List<Dish> list = service.list(queryWrapper);
 //       return R.success(list);
 //   }
+
 
     @GetMapping("/list")
     public R<List<DishDto>> listDish(Long categoryId){
