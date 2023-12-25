@@ -6,6 +6,8 @@ import com.example.reggie_take_out.entity.User;
 import com.example.reggie_take_out.service.UserService;
 import com.example.reggie_take_out.util.Sample;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/user")
@@ -21,6 +24,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @PostMapping("/sendMsg")
     public R<String> sendMsg(HttpServletRequest request, @RequestBody User user) throws Exception {
@@ -30,10 +36,17 @@ public class UserController {
         Random random = new Random();
         int codeNum = random.nextInt( 8998)+1001;
         //String code =""+codeNum;
-        String code = "1234";
+//        String code = "1234";
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        // 缓存短信验证码到redis
+        // 60s
+        String phone = user.getPhone();
+        valueOperations.set(phone,codeNum,60, TimeUnit.SECONDS);
+
+        System.out.println(codeNum);
         // 将验证码存储在session中
         //Sample.sendCode("","",user.getPhone(),code);
-        request.getSession().setAttribute(user.getPhone(),code);
+//        request.getSession().setAttribute(user.getPhone(),codeNum);
         return R.success("验证码发送成功");
     }
 
@@ -41,9 +54,11 @@ public class UserController {
     public R<User> login(HttpServletRequest request,@RequestBody Map<String,String> map){
         String phone = map.get("phone");
         String code = map.get("code");
+        ValueOperations valueOperations = redisTemplate.opsForValue();
 
+        String oldCode =String.valueOf(valueOperations.get(phone));
         // 判断验证码和手机号是否正确
-        String oldCode = (String) request.getSession().getAttribute(phone);
+//        String oldCode = (String) request.getSession().getAttribute(phone);
         if(!oldCode.equals(code)){
             return R.error("验证码错误");
         }
@@ -63,6 +78,10 @@ public class UserController {
 
         // 将数据放在session里面，避免重复登录
         request.getSession().setAttribute("user",newUser.getId());
+
+        // 登录成功删除缓存
+        redisTemplate.delete(phone);
+
 
         return R.success(newUser);
     }
